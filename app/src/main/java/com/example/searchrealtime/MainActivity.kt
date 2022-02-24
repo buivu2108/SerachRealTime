@@ -10,6 +10,7 @@ import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import io.reactivex.rxjava3.subjects.PublishSubject
+import java.lang.Exception
 import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
@@ -40,24 +41,30 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onQueryTextChange(newText: String?): Boolean {
-                numberAdapter.numberArray.clear()
                 publishSubject.onNext(newText!!)
                 return false
             }
         })
 
-        publishSubject.debounce(1000, TimeUnit.MILLISECONDS).filter { it.isNotEmpty() }.distinctUntilChanged().flatMap {
+        publishSubject.filter {
+            if (it.isEmpty()){
+                numberAdapter.numberArray.clear()
+                numberAdapter.notifyDataSetChanged()
+            }
+            it.length >=0
+        }.debounce(1000, TimeUnit.MILLISECONDS).distinctUntilChanged().flatMap {
             search(it, numberArray)
         }.subscribeOn(Schedulers.computation()).observeOn(AndroidSchedulers.mainThread())
             .subscribe({
+                numberAdapter.numberArray.clear()
                 numberAdapter.addData(it)
+                numberAdapter.notifyDataSetChanged()
             }, {
                 it.printStackTrace()
             }, {
 
             })
     }
-
     private fun search(text: String, numberArray: ArrayList<Int>): Observable<ArrayList<Int>> {
         return Observable.create<ArrayList<Int>> {
             val list = ArrayList<Int>()
