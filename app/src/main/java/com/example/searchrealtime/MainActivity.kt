@@ -8,16 +8,15 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.searchrealtime.databinding.ActivityMainBinding
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
-import io.reactivex.rxjava3.core.Observer
 import io.reactivex.rxjava3.schedulers.Schedulers
-import io.reactivex.rxjava3.subjects.BehaviorSubject
+import io.reactivex.rxjava3.subjects.PublishSubject
 import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
 
     lateinit var binding: ActivityMainBinding
 
-    val behaviorSubject = BehaviorSubject.create<String>()!!
+    val publishSubject = PublishSubject.create<String>()!!
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,12 +41,12 @@ class MainActivity : AppCompatActivity() {
 
             override fun onQueryTextChange(newText: String?): Boolean {
                 numberAdapter.numberArray.clear()
-                behaviorSubject.onNext(newText!!)
+                publishSubject.onNext(newText!!)
                 return false
             }
         })
 
-        behaviorSubject.debounce(2000, TimeUnit.MILLISECONDS).flatMap {
+        publishSubject.debounce(1000, TimeUnit.MILLISECONDS).filter { it.isNotEmpty() }.distinctUntilChanged().flatMap {
             search(it, numberArray)
         }.subscribeOn(Schedulers.computation()).observeOn(AndroidSchedulers.mainThread())
             .subscribe({
@@ -59,9 +58,8 @@ class MainActivity : AppCompatActivity() {
             })
     }
 
-    private fun search(text: String, numberArray: ArrayList<Int>) : Observable<ArrayList<Int>>{
+    private fun search(text: String, numberArray: ArrayList<Int>): Observable<ArrayList<Int>> {
         return Observable.create<ArrayList<Int>> {
-            Thread.sleep(2000)
             val list = ArrayList<Int>()
             for (item in numberArray) {
                 if (item.toString().contains(text)) {
@@ -69,7 +67,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             it.onNext(list)
-        }
+        }.delay(2000L, TimeUnit.MILLISECONDS)
     }
-
 }
+
